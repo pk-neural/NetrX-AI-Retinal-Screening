@@ -1,0 +1,31 @@
+# Python
+backend/venv/
+backend/__pycache__/
+backend/**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+.env
+
+# Debug / scratch files
+backend/debug_output/
+backend/debug_pipeline.py
+debug_models.py
+vessel_model_info.txt
+
+# Test images (not needed in repo)
+test.jpg
+test_aptos.jpg
+test_fundus.jpg
+
+# Node / Frontend
+node_modules/
+.vite/
+dist/
+
+# OS
+.DS_Store
+*.swp

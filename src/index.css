@@ -1,0 +1,210 @@
+@import "tailwindcss";
+
+/* ============================================================
+   NetrX Design System — Global Stylesheet
+   Primary: #0A1128 (Deep Navy)
+   Accent:  #FA495C (Coral/Red)
+   BG:      #F8FAFC (Light Lavender/White)
+   ============================================================ */
+
+@layer base {
+  *, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background-color: #F8FAFC;
+    color: #0A1128;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+  }
+
+  ::selection {
+    background-color: rgba(250, 73, 92, 0.2);
+    color: #FA495C;
+  }
+}
+
+@layer utilities {
+  .glass-panel {
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+/* ── Custom Animations ─────────────────────────────────────── */
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+@keyframes spin-slow-reverse {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(-360deg); }
+}
+@keyframes pulse-ring {
+  0%, 100% { opacity: 0.4; transform: scale(1); }
+  50%       { opacity: 0.8; transform: scale(1.04); }
+}
+@keyframes scan-line {
+  0%   { top: 0%; opacity: 0; }
+  10%  { opacity: 1; }
+  90%  { opacity: 1; }
+  100% { top: 100%; opacity: 0; }
+}
+@keyframes float-in {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes dash-rotate {
+  to { stroke-dashoffset: -100; }
+}
+
+.animate-spin-slow         { animation: spin-slow 12s linear infinite; }
+.animate-spin-slow-reverse { animation: spin-slow-reverse 18s linear infinite; }
+.animate-pulse-ring        { animation: pulse-ring 3s ease-in-out infinite; }
+.animate-scan-line         { animation: scan-line 3s linear infinite; }
+.animate-float-in          { animation: float-in 0.7s ease-out both; }
+.animate-fade-in           { animation: fade-in 0.5s ease-out both; }
+.animate-slide-up          { animation: slide-up 0.6s ease-out both; }
+
+/* ── Stagger delays ────────────────────────────────────────── */
+.delay-100 { animation-delay: 0.1s; }
+.delay-200 { animation-delay: 0.2s; }
+.delay-300 { animation-delay: 0.3s; }
+.delay-400 { animation-delay: 0.4s; }
+.delay-500 { animation-delay: 0.5s; }
+.delay-600 { animation-delay: 0.6s; }
+
+/* ── Retinal Scan HUD ──────────────────────────────────────── */
+.hud-ring-outer {
+  border: 1.5px solid rgba(255,255,255,0.25);
+  border-radius: 50%;
+  animation: pulse-ring 4s ease-in-out infinite;
+}
+.hud-ring-dashed {
+  border: 1.5px dashed rgba(250, 73, 92, 0.55);
+  border-radius: 50%;
+  animation: spin-slow 20s linear infinite;
+}
+
+/* ── Scrollbar ─────────────────────────────────────────────── */
+::-webkit-scrollbar       { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #f1f5f9; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+/* ── Additional Animations (Homepage Sections) ─────────────── */
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(32px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes bounce-arrow {
+  0%, 100% { transform: translateY(0) translateX(-50%); }
+  50%       { transform: translateY(9px) translateX(-50%); }
+}
+@keyframes bounce-y {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(7px); }
+}
+@keyframes scan-ping {
+  0%        { transform: scale(1); opacity: 0.9; box-shadow: 0 0 0 0 rgba(250,73,92,0.6); }
+  70%       { transform: scale(1.4); opacity: 0.5; box-shadow: 0 0 0 6px rgba(250,73,92,0); }
+  100%      { transform: scale(1); opacity: 0.9; box-shadow: 0 0 0 0 rgba(250,73,92,0); }
+}
+@keyframes float-idle {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-5px); }
+}
+@keyframes scan-sweep {
+  0%   { top: -2px; opacity: 0; }
+  8%   { opacity: 1; }
+  92%  { opacity: 1; }
+  100% { top: 100%; opacity: 0; }
+}
+@keyframes heatmap-reveal {
+  from { opacity: 0; }
+  to   { opacity: 0.82; }
+}
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(250,73,92,0); }
+  50%       { box-shadow: 0 0 28px 6px rgba(250,73,92,0.28); }
+}
+@keyframes width-grow {
+  from { width: 0%; }
+  to   { width: 100%; }
+}
+@keyframes draw-line {
+  from { transform: scaleY(0); transform-origin: top; }
+  to   { transform: scaleY(1); transform-origin: top; }
+}
+@keyframes blink-dot {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.2; }
+}
+
+.animate-fade-up        { animation: fade-up 0.65s ease-out both; }
+.animate-bounce-arrow   { animation: bounce-arrow 1.6s ease-in-out infinite; }
+.animate-bounce-y       { animation: bounce-y 1.6s ease-in-out infinite; }
+.animate-scan-sweep     { animation: scan-sweep 2.8s linear infinite; }
+.animate-heatmap-reveal { animation: heatmap-reveal 0.7s ease-out both; }
+.animate-glow-pulse     { animation: glow-pulse 2.2s ease-in-out infinite; }
+.animate-draw-line      { animation: draw-line 0.5s ease-out both; }
+.animate-blink-dot      { animation: blink-dot 1.4s ease-in-out infinite; }
+.animate-scan-ping      { animation: scan-ping 1.8s ease-out infinite; }
+.animate-float-idle     { animation: float-idle 3.5s ease-in-out infinite; }
+
+/* ── Section utility ───────────────────────────────────────── */
+.section-reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 0.65s ease-out, transform 0.65s ease-out;
+}
+.section-reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ── Print Styles ──────────────────────────────────────────── */
+@media print {
+  .no-print { display: none !important; }
+  body { background: white; color: black; }
+  .print-page { page-break-before: always; }
+}
+
+/* ── Reduced Motion ────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  .section-reveal {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+}
