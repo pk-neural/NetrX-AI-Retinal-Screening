@@ -1,9 +1,8 @@
 """
-NetrX Grad-CAM Service — ViT-B/16
+NetrX Grad-CAM Service — ViT-B/16 (From-Scratch Implementation)
 
-Generates Grad-CAM heatmap overlays from the DR ViT model.
-Falls back to EigenCAM when gradients vanish (very confident model).
-Applies top-5% threshold so only the SINGLE MOST INFLUENTIAL region is shown.
+Generates class-specific Grad-CAM explanations for the DR ViT-B/16 model.
+Includes strict FOV masking to ensure activations do not appear outside the retina.
 """
 
 import cv2
@@ -11,39 +10,16 @@ import numpy as np
 import torch
 import base64
 import logging
-import os
-
-from pytorch_grad_cam import GradCAM, EigenCAM
-from pytorch_grad_cam.utils.model_targets import ClassifierOutputTarget
 
 logger = logging.getLogger("netrx.gradcam")
 
-ARTIFACT_DIR = "/Users/pruthvi/.gemini/antigravity-ide/brain/36ca8c39-c18b-4a05-b5c5-5164653c676a"
+# ── Constants ─────────────────────────────────────────────────────────────────
+EXPECTED_TOTAL_TOKENS = 197   # 1 CLS + 196 patch tokens
+EXPECTED_PATCH_TOKENS = 196   # 14 × 14
+EXPECTED_PATCH_GRID   = 14    # sqrt(196)
+EXPECTED_FEATURE_DIM  = 768   # ViT-B hidden dim
+OUTPUT_SIZE           = 512   # Final PNG resolution sent to frontend
 
-
-# ─── helpers ──────────────────────────────────────────────────────────────────
-
-def _compute_fov_mask(img_bgr: np.ndarray) -> np.ndarray:
-    """Binary FOV mask for the circular fundus region."""
-    gray = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2GRAY)
-    blurred = cv2.GaussianBlur(gray, (11, 11), 0)
-    _, binary = cv2.threshold(blurred, 10, 255, cv2.THRESH_BINARY)
-    kernel = np.ones((7, 7), np.uint8)
-    binary = cv2.morphologyEx(binary, cv2.MORPH_CLOSE, kernel)
-    binary = cv2.morphologyEx(binary, cv2.MORPH_OPEN, kernel)
-    binary = cv2.dilate(binary, np.ones((5, 5), np.uint8), iterations=2)
-    return (binary > 0).astype(np.float32)
-
-
-def reshape_transform(tensor):
-    """ViT reshape: drop CLS token → [B, 14, 14, C] → [B, C, 14, 14]."""
-    tensor = tensor[:, 1:, :]
-    tensor = tensor.reshape(tensor.size(0), 14, 14, tensor.size(2))
-    tensor = tensor.permute(0, 3, 1, 2)
-    return tensor
-
-
-# ─── main ─────────────────────────────────────────────────────────────────────
 
 def generate_gradcam(
     model,
@@ -52,131 +28,182 @@ def generate_gradcam(
     target_class: int = None,
 ) -> dict:
     """
-    Generate a localized Grad-CAM overlay showing ONLY the most influential region.
+    Generate a class-specific Grad-CAM overlay for the DR ViT-B/16 model.
 
-    Pipeline:
-      1. Run GradCAM.  If gradients vanish → fall back to EigenCAM.
-      2. Resize to original image dimensions.
-      3. Apply circular FOV mask.
-      4. Zero-out everything below the 95th percentile inside the FOV
-         (keep only the top 5% of activations).
-      5. Gaussian-smooth the surviving hot region.
-      6. Blend with alpha proportional to activation strength (max 0.70).
-      7. Return base64-encoded overlay PNG.
+    Args:
+        model:         Loaded DR ViT-B/16 model
+        input_tensor:  Preprocessed input tensor, shape [1, 3, 224, 224]
+        original_bgr:  Original fundus image in BGR (for overlay)
+        target_class:  DR grade to explain (should be the predicted class)
+
+    Returns:
+        dict with "gradcam_image" and "heatmap_image" base64 strings.
     """
     try:
         device = next(model.parameters()).device
-        model.eval()
+        H_orig, W_orig = original_bgr.shape[:2]
 
-        # ── 1a. Get predicted class ───────────────────────────────────────────
-        with torch.no_grad():
-            logits = model(input_tensor.to(device))
-            probs = torch.softmax(logits, dim=1)[0].cpu().numpy()
+        # ── GENERATE RETINAL FOV MASK ─────────────────────────────────────────
+        gray = cv2.cvtColor(original_bgr, cv2.COLOR_BGR2GRAY)
+        _, thresh = cv2.threshold(gray, 15, 255, cv2.THRESH_BINARY)
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+        mask_cleaned = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel)
+        mask_cleaned = cv2.morphologyEx(mask_cleaned, cv2.MORPH_CLOSE, kernel)
+        
+        contours, _ = cv2.findContours(mask_cleaned, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        
+        if contours:
+            largest_contour = max(contours, key=cv2.contourArea)
+            fov_mask_orig = np.zeros_like(gray, dtype=np.float32)
+            cv2.drawContours(fov_mask_orig, [largest_contour], -1, 1.0, thickness=cv2.FILLED)
+        else:
+            fov_mask_orig = np.ones_like(gray, dtype=np.float32)
+            
+        fov_coverage = (np.count_nonzero(fov_mask_orig) / fov_mask_orig.size) * 100.0
+        
+        # Soft FOV for final full-res masking
+        fov_soft = cv2.GaussianBlur(fov_mask_orig, (0, 0), sigmaX=2)
+        
+        # 14x14 FOV for patch-level masking
+        fov_mask_14 = cv2.resize(fov_mask_orig, (EXPECTED_PATCH_GRID, EXPECTED_PATCH_GRID), interpolation=cv2.INTER_AREA)
 
-        predicted_grade = int(np.argmax(probs)) if target_class is None else target_class
-        predicted_prob = float(probs[predicted_grade])
-        logger.info(f"[GradCAM] class={predicted_grade} prob={predicted_prob:.3f}")
+        # ── Hook setup ────────────────────────────────────────────────────────
+        captured = {"activations": None, "gradients": None}
+
+        def forward_hook(module, input, output):
+            captured["activations"] = output
+
+        def backward_hook(module, grad_input, grad_output):
+            captured["gradients"] = grad_output[0]
 
         target_layer = model.encoder.layers[-1].ln_1
-        targets = [ClassifierOutputTarget(predicted_grade)]
-
-        # ── 1b. GradCAM → EigenCAM fallback ──────────────────────────────────
-        grayscale_cam = None
-        method_used = "GradCAM"
+        fwd_handle = target_layer.register_forward_hook(forward_hook)
+        bwd_handle = target_layer.register_full_backward_hook(backward_hook)
 
         try:
-            cam_obj = GradCAM(
-                model=model,
-                target_layers=[target_layer],
-                reshape_transform=reshape_transform,
-            )
-            raw = cam_obj(input_tensor=input_tensor.to(device), targets=targets)[0]
-            span = float(raw.max()) - float(raw.min())
-            if span < 1e-4:
-                raise ValueError(f"GradCAM near-zero (span={span:.2e}) — gradients vanished")
-            grayscale_cam = raw
-            logger.info(f"[GradCAM] GradCAM ok: min={raw.min():.4f} max={raw.max():.4f}")
-        except Exception as ge:
-            logger.warning(f"[GradCAM] {ge} → switching to EigenCAM")
-            method_used = "EigenCAM"
-            eigen_obj = EigenCAM(
-                model=model,
-                target_layers=[target_layer],
-                reshape_transform=reshape_transform,
-            )
-            grayscale_cam = eigen_obj(input_tensor=input_tensor.to(device), targets=targets)[0]
-            logger.info(f"[GradCAM] EigenCAM: min={grayscale_cam.min():.4f} max={grayscale_cam.max():.4f}")
+            # ── Forward pass ──────────────────────────────────────────────────
+            model.eval()
+            input_t = input_tensor.to(device).requires_grad_(False)
+            logits = model(input_t)
+            probs = torch.softmax(logits, dim=1)[0].detach().cpu().numpy()
 
-        # ── 2. Resize to original image ───────────────────────────────────────
-        H, W = original_bgr.shape[:2]
-        cam_resized = cv2.resize(grayscale_cam, (W, H), interpolation=cv2.INTER_CUBIC)
+            predicted_class = int(np.argmax(probs))
+            grad_target = target_class if target_class is not None else predicted_class
+            predicted_confidence = float(probs[predicted_class]) * 100.0
+
+            # ── Backward pass ─────────────────────────────────────────────────
+            model.zero_grad()
+            target_score = logits[0, grad_target]
+            target_score.backward()
+
+            activations = captured["activations"]
+            gradients = captured["gradients"]
+
+            # ── Validate shapes ───────────────────────────────────────────────
+            assert activations.shape[1] == EXPECTED_TOTAL_TOKENS, "Expected 197 tokens"
+            assert gradients.shape[1] == EXPECTED_TOTAL_TOKENS, "Expected 197 gradient tokens"
+            assert grad_target == predicted_class, "Grad-CAM target must match predicted class"
+
+            act = activations[0].detach().cpu()
+            grad = gradients[0].detach().cpu()
+
+            # Remove CLS token
+            act_patches = act[1:]    # [196, 768]
+            grad_patches = grad[1:]  # [196, 768]
+
+            assert act_patches.shape[0] == EXPECTED_PATCH_TOKENS, "Expected 196 patch tokens"
+            assert grad_patches.shape[0] == EXPECTED_PATCH_TOKENS, "Expected 196 gradient tokens"
+
+            # ── Compute Grad-CAM ──────────────────────────────────────────────
+            weights = grad_patches.mean(dim=0)
+            cam = (act_patches * weights.unsqueeze(0)).sum(dim=1)
+            cam_2d = cam.reshape(EXPECTED_PATCH_GRID, EXPECTED_PATCH_GRID)
+
+            # ReLU for positive evidence only
+            cam_2d = torch.relu(cam_2d)
+            cam_np = cam_2d.numpy().astype(np.float32)
+            
+            # Apply 14x14 FOV mask BEFORE normalization to avoid normalizing noise
+            cam_np = cam_np * fov_mask_14
+
+            # Stable Normalization
+            cam_min = cam_np.min()
+            cam_max = cam_np.max()
+            if cam_max > cam_min:
+                cam_np = (cam_np - cam_min) / (cam_max - cam_min + 1e-8)
+            else:
+                cam_np = np.zeros_like(cam_np)
+
+            # Remove tiny numerical noise
+            cam_np[cam_np < 0.02] = 0
+
+        finally:
+            fwd_handle.remove()
+            bwd_handle.remove()
+
+        # ── Upsample to 224x224 (Bilinear) ────────────────────────────────────
+        cam_resized = cv2.resize(cam_np, (W_orig, H_orig), interpolation=cv2.INTER_LINEAR)
+        
+        # Apply full-res soft FOV mask to cleanly cut off background
+        cam_resized = cam_resized * fov_soft
+        
+        # Mild Gaussian smoothing (sigma=2) for visual quality
+        cam_resized = cv2.GaussianBlur(cam_resized, (0, 0), sigmaX=2)
         cam_resized = np.clip(cam_resized, 0, 1).astype(np.float32)
+        
+        c_min, c_max, c_mean = cam_resized.min(), cam_resized.max(), cam_resized.mean()
 
-        # ── 3. FOV mask ───────────────────────────────────────────────────────
-        fov_mask = _compute_fov_mask(original_bgr)
-        cam_resized *= fov_mask
+        # ── Visualization ─────────────────────────────────────────────────────
+        heatmap_u8 = np.uint8(cam_resized * 255)
+        heatmap_bgr = cv2.applyColorMap(heatmap_u8, cv2.COLORMAP_JET)
 
-        # ── 4. Keep ONLY the top 5% of activations inside FOV ────────────────
-        valid_vals = cam_resized[fov_mask > 0]
-        if valid_vals.size > 0 and valid_vals.max() > valid_vals.min():
-            thresh = np.percentile(valid_vals, 95)
-        else:
-            thresh = 0.0
+        orig_float = original_bgr.astype(np.float32) / 255.0
+        heat_float = heatmap_bgr.astype(np.float32) / 255.0
 
-        cam_filtered = np.where(cam_resized >= thresh, cam_resized, 0.0).astype(np.float32)
-        cam_filtered *= fov_mask
+        # Alpha = 0 outside FOV, max 0.45 inside
+        alpha = (0.45 * cam_resized)[..., np.newaxis]
+        overlay_float = (1.0 - alpha) * orig_float + alpha * heat_float
+        overlay_bgr = np.clip(overlay_float * 255, 0, 255).astype(np.uint8)
 
-        # Renormalize so the peak = 1.0
-        peak = cam_filtered.max()
-        if peak > 0:
-            cam_filtered /= peak
+        # ── Detailed Logging ──────────────────────────────────────────────────
+        logger.info(
+            f"\n{'=' * 50}\n"
+            f"NETRX GRAD-CAM VALIDATION\n"
+            f"{'=' * 50}\n"
+            f"Predicted DR Grade : {predicted_class}\n"
+            f"Target Class       : {grad_target}\n"
+            f"Model Confidence   : {predicted_confidence:.2f}%\n\n"
+            f"Activation Shape   : {tuple(activations.shape)}\n"
+            f"Gradient Shape     : {tuple(gradients.shape)}\n\n"
+            f"Total Tokens       : {EXPECTED_TOTAL_TOKENS}\n"
+            f"Patch Tokens       : {EXPECTED_PATCH_TOKENS}\n"
+            f"Patch Grid         : {EXPECTED_PATCH_GRID} x {EXPECTED_PATCH_GRID}\n\n"
+            f"CAM Before FOV     : {EXPECTED_PATCH_GRID} x {EXPECTED_PATCH_GRID}\n"
+            f"FOV Mask Shape     : {tuple(fov_mask_orig.shape)}\n"
+            f"CAM After FOV      : {EXPECTED_PATCH_GRID} x {EXPECTED_PATCH_GRID}\n"
+            f"CAM Final Shape    : {W_orig} x {H_orig}\n\n"
+            f"CAM Min            : {c_min:.6f}\n"
+            f"CAM Max            : {c_max:.6f}\n"
+            f"CAM Mean           : {c_mean:.6f}\n\n"
+            f"FOV Coverage       : {fov_coverage:.2f}%\n"
+            f"{'=' * 50}"
+        )
 
-        # ── 5. Smooth only the surviving hot region ───────────────────────────
-        cam_filtered = cv2.GaussianBlur(cam_filtered, (0, 0), sigmaX=8)
-        cam_filtered *= fov_mask
-        peak2 = cam_filtered.max()
-        if peak2 > 0:
-            cam_filtered /= peak2
+        # ── Output Encoding ───────────────────────────────────────────────────
+        overlay_out = cv2.resize(overlay_bgr, (OUTPUT_SIZE, OUTPUT_SIZE), interpolation=cv2.INTER_AREA)
+        heatmap_out = cv2.resize(heatmap_bgr, (OUTPUT_SIZE, OUTPUT_SIZE), interpolation=cv2.INTER_AREA)
 
-        active_px = int((cam_filtered > 0.01).sum())
-        logger.info(f"[GradCAM] method={method_used} thresh={thresh:.4f} active_px={active_px}")
-
-        # ── 6. JET heatmap ────────────────────────────────────────────────────
-        heatmap_u8 = np.uint8(cam_filtered * 255)
-        heatmap_bgr_jet = cv2.applyColorMap(heatmap_u8, cv2.COLORMAP_JET)
-        heatmap_rgb_jet = cv2.cvtColor(heatmap_bgr_jet, cv2.COLOR_BGR2RGB)
-
-        # ── 7. Alpha blend — max 0.70, zero outside hot region ───────────────
-        orig_rgb = cv2.cvtColor(original_bgr, cv2.COLOR_BGR2RGB).astype(np.float32) / 255.0
-        heat_f = heatmap_rgb_jet.astype(np.float32) / 255.0
-
-        alpha = (0.70 * cam_filtered)[..., np.newaxis]          # [H,W,1]
-        overlay_f = (1.0 - alpha) * orig_rgb + alpha * heat_f
-        overlay_f[fov_mask == 0] = orig_rgb[fov_mask == 0]      # restore black background
-
-        overlay_u8 = np.clip(overlay_f * 255, 0, 255).astype(np.uint8)
-        overlay_bgr = cv2.cvtColor(overlay_u8, cv2.COLOR_RGB2BGR)
-        heatmap_bgr_out = cv2.cvtColor(heatmap_rgb_jet, cv2.COLOR_RGB2BGR)
-
-        # ── 8. Save debug artifacts ───────────────────────────────────────────
-        if os.path.exists(ARTIFACT_DIR):
-            cv2.imwrite(os.path.join(ARTIFACT_DIR, "gradcam_original.png"), original_bgr)
-            cv2.imwrite(os.path.join(ARTIFACT_DIR, "gradcam_activation.png"), heatmap_bgr_out)
-            cv2.imwrite(os.path.join(ARTIFACT_DIR, "gradcam_final_overlay.png"), overlay_bgr)
-
-        # ── 9. Encode for frontend ────────────────────────────────────────────
-        SZ = 512
-        _, ob = cv2.imencode(".png", cv2.resize(overlay_bgr, (SZ, SZ), interpolation=cv2.INTER_AREA))
-        _, hb = cv2.imencode(".png", cv2.resize(heatmap_bgr_out, (SZ, SZ), interpolation=cv2.INTER_AREA))
+        _, overlay_buf = cv2.imencode(".png", overlay_out)
+        _, heatmap_buf = cv2.imencode(".png", heatmap_out)
 
         return {
-            "gradcam_image": base64.b64encode(ob).decode("utf-8"),
-            "heatmap_image": base64.b64encode(hb).decode("utf-8"),
+            "gradcam_image": base64.b64encode(overlay_buf).decode("utf-8"),
+            "heatmap_image": base64.b64encode(heatmap_buf).decode("utf-8"),
         }
 
     except Exception as e:
         logger.error(f"[GradCAM] Generation failed: {e}", exc_info=True)
-        SZ = 512
-        _, buf = cv2.imencode(".png", cv2.resize(original_bgr, (SZ, SZ)))
-        fb = base64.b64encode(buf).decode("utf-8")
-        return {"gradcam_image": fb, "heatmap_image": fb}
+        fallback = cv2.resize(original_bgr, (OUTPUT_SIZE, OUTPUT_SIZE))
+        _, buf = cv2.imencode(".png", fallback)
+        fb64 = base64.b64encode(buf).decode("utf-8")
+        return {"gradcam_image": fb64, "heatmap_image": fb64}

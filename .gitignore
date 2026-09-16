@@ -29,4 +29,17 @@ dist/
 # OS
 .DS_Store
 *.swp
-models/
+
+# Models
+# Exclude large ViT models (>300MB)
+models/netrx_idrid_dme_vit_b16_best.pth
+models/netrx_vit_b16_best.pth
+models/netrx_idrid_dme_vit_b16_best/
+models/netrx_vit_b16_best/
+
+# Exclude unzipped vessel model directory
+models/netrx_drive_vessel_best/
+
+# Let the vessel model (7MB) and YOLO (5MB) be committed
+!models/netrx_drive_vessel_best.pth
+!models/Yolo.pt/

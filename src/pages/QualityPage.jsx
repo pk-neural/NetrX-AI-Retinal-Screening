@@ -54,7 +54,7 @@ export default function QualityPage() {
   // Quality metrics table data
   const metricsRows = [
     {
-      label: 'Focus (Laplacian)',
+      label: 'Focus (Sharpness)',
       original: qualityOriginal.focus,
       enhanced: qualityEnhanced.focus,
       change: qualityChange.focus,
@@ -64,6 +64,18 @@ export default function QualityPage() {
       original: qualityOriginal.illumination,
       enhanced: qualityEnhanced.illumination,
       change: qualityChange.illumination,
+    },
+    {
+      label: 'Contrast',
+      original: qualityOriginal.contrast,
+      enhanced: qualityEnhanced.contrast,
+      change: qualityChange.contrast,
+    },
+    {
+      label: 'Retinal Detail',
+      original: qualityOriginal.detail,
+      enhanced: qualityEnhanced.detail,
+      change: qualityChange.detail,
     },
     {
       label: 'Field of View (FOV)',

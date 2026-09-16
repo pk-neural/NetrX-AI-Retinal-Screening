@@ -40,6 +40,7 @@ export default function ResultsPage() {
   const vesselStatus = vessels?.status ?? 'unavailable';
   const vesselCoverage = vessels?.coverage ?? 0;
   const gradcamImage = gradcam?.gradcam_image ?? null;
+  const originalImage = fullResult.preprocessing?.original_image ?? null;
 
   // RAG data with safe fallbacks
   const clinicalImpression = rag?.clinical_impression ?? 'Clinical impression not available.';
@@ -99,6 +100,25 @@ export default function ResultsPage() {
         {/* ─── Report Body ─── */}
         <div className="bg-white border-x border-slate-200 p-8 sm:p-10 space-y-10">
 
+          {/* ═══ 0. INPUT FUNDUS IMAGE ═══ */}
+          <div>
+            <div className="flex items-center gap-2 mb-4">
+              <Eye className="w-5 h-5 text-[#FA495C]" />
+              <h2 className="text-lg font-extrabold text-[#0A1128] uppercase tracking-wide">
+                Input Fundus Image
+              </h2>
+            </div>
+            <div className="rounded-2xl overflow-hidden border border-slate-200 bg-slate-900 aspect-video md:aspect-[21/9] relative">
+              {originalImage ? (
+                <img src={`data:image/jpeg;base64,${originalImage}`} alt="Original Uploaded Fundus" className="w-full h-full object-contain" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-slate-500">Image unavailable</div>
+              )}
+            </div>
+          </div>
+
+          <hr className="border-slate-100" />
+
           {/* ═══ 1. DIABETIC RETINOPATHY ASSESSMENT ═══ */}
           <div>
             <div className="flex items-center gap-2 mb-6">
@@ -108,56 +128,98 @@ export default function ResultsPage() {
               </h2>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* Grade Box */}
-              <div className={`p-6 rounded-2xl border-2 ${
-                drGrade >= 3 ? 'bg-rose-50 border-rose-200' :
-                drGrade >= 2 ? 'bg-amber-50 border-amber-200' :
-                'bg-green-50 border-green-200'
-              }`}>
-                <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">AI Classification</div>
-                <div className={`text-5xl font-extrabold ${
-                  drGrade >= 3 ? 'text-[#FA495C]' :
-                  drGrade >= 2 ? 'text-amber-600' :
-                  'text-green-600'
+            <div className="flex flex-col md:flex-row gap-6">
+              {/* Left: Original Image beside Grade */}
+              <div className="w-full md:w-1/3 flex-shrink-0">
+                <div className="h-full rounded-2xl overflow-hidden border-2 border-slate-200 bg-slate-900 aspect-square md:aspect-auto">
+                  {originalImage ? (
+                    <img src={`data:image/jpeg;base64,${originalImage}`} alt="Original Fundus" className="w-full h-full object-contain" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-slate-500 text-sm">Image unavailable</div>
+                  )}
+                </div>
+              </div>
+
+              {/* Right: DR Results */}
+              <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-6">
+                {/* Grade Box */}
+                <div className={`p-6 rounded-2xl border-2 sm:col-span-2 ${
+                  drGrade >= 3 ? 'bg-rose-50 border-rose-200' :
+                  drGrade >= 2 ? 'bg-amber-50 border-amber-200' :
+                  'bg-green-50 border-green-200'
                 }`}>
-                  Grade {drGrade}
-                </div>
-                <div className="text-sm font-bold text-[#0A1128] mt-2">{drLabel}</div>
-                <div className="mt-4 pt-4 border-t border-slate-200/60 flex justify-between items-center text-sm">
-                  <span className="text-slate-500">Model Confidence:</span>
-                  <span className="text-lg font-extrabold text-[#0A1128]">{drConfidence}%</span>
-                </div>
-              </div>
-
-              {/* Referable DR */}
-              <div className="p-6 rounded-2xl border border-slate-200 flex flex-col items-center justify-center text-center">
-                <div className="flex items-center gap-1.5 mb-3">
-                  {isReferable
-                    ? <AlertTriangle className="w-5 h-5 text-[#FA495C]" />
-                    : <CheckCircle2 className="w-5 h-5 text-green-500" />}
-                  <span className="text-sm font-bold text-[#0A1128]">Referable DR</span>
-                </div>
-                <div className={`text-3xl font-extrabold ${isReferable ? 'text-[#FA495C]' : 'text-green-600'}`}>
-                  {isReferable ? 'YES' : 'NO'}
-                </div>
-                {referableInfo.probability !== null && (
-                  <div className="mt-3 text-center">
-                    <div className="text-xs text-slate-400">Referable Probability</div>
-                    <div className="text-lg font-bold text-[#0A1128]">{referableInfo.probability}%</div>
+                  <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">AI Classification</div>
+                  <div className={`text-5xl font-extrabold ${
+                    drGrade >= 3 ? 'text-[#FA495C]' :
+                    drGrade >= 2 ? 'text-amber-600' :
+                    'text-green-600'
+                  }`}>
+                    Grade {drGrade}
                   </div>
-                )}
-              </div>
+                  <div className="text-sm font-bold text-[#0A1128] mt-2">{drLabel}</div>
+                  <div className="mt-4 pt-4 border-t border-slate-200/60 flex justify-between items-center text-sm">
+                    <span className="text-slate-500">Model Confidence:</span>
+                    <span className="text-lg font-extrabold text-[#0A1128]">{drConfidence}%</span>
+                  </div>
+                </div>
 
-              {/* Clinical Meaning */}
-              <div className="p-6 rounded-2xl bg-slate-50 border border-slate-200">
-                <h4 className="text-sm font-bold text-[#0A1128] mb-3 flex items-center gap-2">
-                  <FileText className="w-4 h-4 text-slate-400" /> Clinical Meaning
-                </h4>
-                <p className="text-xs text-slate-600 leading-relaxed">
-                  {drInterpretation.clinical_meaning || 'Clinical meaning not available.'}
-                </p>
+                {/* Referable DR */}
+                <div className="p-6 rounded-2xl border border-slate-200 flex flex-col items-center justify-center text-center">
+                  <div className="flex items-center gap-1.5 mb-3">
+                    {isReferable
+                      ? <AlertTriangle className="w-5 h-5 text-[#FA495C]" />
+                      : <CheckCircle2 className="w-5 h-5 text-green-500" />}
+                    <span className="text-sm font-bold text-[#0A1128]">Referable DR</span>
+                  </div>
+                  <div className={`text-3xl font-extrabold ${isReferable ? 'text-[#FA495C]' : 'text-green-600'}`}>
+                    {isReferable ? 'YES' : 'NO'}
+                  </div>
+                  {referableInfo.probability !== null && (
+                    <div className="mt-3 text-center">
+                      <div className="text-xs text-slate-400">Referable Probability</div>
+                      <div className="text-lg font-bold text-[#0A1128]">{referableInfo.probability}%</div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Clinical Meaning */}
+                <div className="p-6 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col justify-center">
+                  <h4 className="text-sm font-bold text-[#0A1128] mb-3 flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-slate-400" /> Clinical Meaning
+                  </h4>
+                  <p className="text-xs text-slate-600 leading-relaxed">
+                    {drInterpretation.clinical_meaning || 'Clinical meaning not available.'}
+                  </p>
+                </div>
               </div>
+            </div>
+
+            {/* DR Severity Scale */}
+            <div className="mt-8">
+              <h3 className="text-sm font-bold text-[#0A1128] mb-4 uppercase tracking-wide">Diabetic Retinopathy Severity</h3>
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                {[
+                  { grade: 0, label: 'No apparent DR', color: 'bg-green-100 border-green-300 text-green-700' },
+                  { grade: 1, label: 'Mild NPDR', color: 'bg-lime-100 border-lime-300 text-lime-700' },
+                  { grade: 2, label: 'Moderate NPDR', color: 'bg-yellow-100 border-yellow-300 text-yellow-700' },
+                  { grade: 3, label: 'Severe NPDR', color: 'bg-orange-100 border-orange-300 text-orange-700' },
+                  { grade: 4, label: 'Proliferative DR', color: 'bg-rose-100 border-rose-300 text-rose-700' },
+                ].map((level, i) => (
+                  <React.Fragment key={level.grade}>
+                    <div className={`flex-1 p-3 rounded-xl border ${drGrade === level.grade ? 'ring-2 ring-offset-2 ring-slate-800 shadow-md scale-105' : 'opacity-60'} ${level.color} flex flex-col items-center justify-center text-center transition-all`}>
+                      <div className="font-bold text-sm">
+                        {drGrade === level.grade && <span className="mr-1">●</span>}
+                        Grade {level.grade}
+                      </div>
+                      <div className="text-[10px] font-bold mt-1 opacity-80">{level.label}</div>
+                    </div>
+                    {i < 4 && <div className="hidden sm:block text-slate-300 font-bold">→</div>}
+                  </React.Fragment>
+                ))}
+              </div>
+              <p className="text-sm text-slate-600 mt-4 leading-relaxed">
+                Diabetic retinopathy severity increases from Grade 0 to Grade 4, with Grade 0 indicating no apparent diabetic retinopathy and Grade 4 representing proliferative diabetic retinopathy.
+              </p>
             </div>
           </div>
 
@@ -263,9 +325,9 @@ export default function ResultsPage() {
                     </div>
                   </div>
                   {vessels?.overlay && (
-                    <div className="mt-4 rounded-xl overflow-hidden border border-slate-200 h-32">
-                      <img src={`data:image/jpeg;base64,${vessels.overlay}`} alt="Vessel overlay"
-                        className="w-full h-full object-cover" />
+                    <div className="mt-4 rounded-xl overflow-hidden border border-slate-200">
+                      <img src={`data:image/png;base64,${vessels.overlay}`} alt="Vessel overlay"
+                        className="w-full h-auto object-contain" />
                     </div>
                   )}
                 </div>
