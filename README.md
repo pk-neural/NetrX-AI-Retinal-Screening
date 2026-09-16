@@ -67,3 +67,6 @@ NetrX addresses this through a sequential AI-assisted pipeline:
                  │ Interpretation       │
                  │ Recommendation       │
                  └──────────────────────┘
+
+## ⚠️ Note on Large Model Weights
+The large ViT model weights (`netrx_vit_b16_best.pth` and `netrx_idrid_dme_vit_b16_best.pth`) are excluded from this Git repository due to their size (~328 MB each). For full local inference, these models must be downloaded separately and placed inside the `models/` directory. The YOLO11n and DRIVE vessel models are included.
