@@ -72,11 +72,11 @@ export default function AIScreeningSection() {
 
           {/* Left — Fundus image with overlay */}
           <div className="relative">
-            <div className="relative rounded-3xl overflow-hidden aspect-[4/3] shadow-2xl">
+            <div className="relative rounded-3xl overflow-hidden aspect-[4/3] shadow-2xl bg-black">
               <img
-                src="/images/photo-1627502208346-b835b72c0f05.avif"
+                src="/images/uploaded_fundus_v2.png"
                 alt="Retinal image undergoing AI screening analysis"
-                className="w-full h-full object-cover object-center"
+                className="w-full h-full object-contain object-center p-2"
                 style={{ filter: state !== 'idle' ? 'brightness(0.75)' : 'brightness(0.6)' }}
               />
 
@@ -228,7 +228,7 @@ export default function AIScreeningSection() {
                 {/* Severity bar */}
                 <div className="space-y-2">
                   <div className="text-xs text-slate-400 font-medium">Severity Scale</div>
-                  <div className="flex gap-1.5">
+                  <div className="flex flex-col sm:flex-row gap-1.5">
                     {SEVERITY_LABELS.map((label, i) => (
                       <div
                         key={label}

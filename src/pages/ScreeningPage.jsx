@@ -7,8 +7,8 @@ import {
 import { useScreening } from '../context/ScreeningContext';
 
 const SAMPLE_IMAGES = [
-  { id: '1', name: 'Sample — Moderate DR', finding: 'Moderate Non-Proliferative Diabetic Retinopathy', url: '/images/samples/mild.avif' },
-  { id: '2', name: 'Sample — No DR Detected', finding: 'No Diabetic Retinopathy Detected (Normal)', url: '/images/samples/healthy.avif' },
+  { id: '1', name: 'Sample — Moderate DR', finding: 'Moderate Non-Proliferative Diabetic Retinopathy', url: '/images/samples/moderate_dr.jpg' },
+  { id: '2', name: 'Sample — No DR Detected', finding: 'No Diabetic Retinopathy Detected (Normal)', url: '/images/samples/no_dr.jpg' },
 ];
 
 const PROGRESS_STEPS = [
@@ -42,6 +42,19 @@ export default function ScreeningPage() {
     resetScreening();
     setSelectedSample(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const handleSelectSample = async (sample) => {
+    setSelectedSample(sample.id);
+    const fileName = sample.id === '1' ? 'moderate_dr_sample.jpg' : 'no_dr_sample.jpg';
+    try {
+      const response = await fetch(sample.url);
+      const blob = await response.blob();
+      const file = new File([blob], fileName, { type: blob.type || 'image/jpeg' });
+      handleFileUpload(file);
+    } catch (err) {
+      console.error('Failed to load sample image:', err);
+    }
   };
 
   // Step 1: Run YOLO domain check
@@ -131,7 +144,7 @@ export default function ScreeningPage() {
                 <div className="rounded-2xl overflow-hidden border border-slate-200 bg-slate-50 relative">
                   <img src={previewUrl} alt="Selected fundus scan" className="w-full h-64 object-cover" />
                   <div className="absolute bottom-3 left-3 right-3 bg-slate-900/85 backdrop-blur-md px-3.5 py-2 rounded-xl border border-slate-800 flex items-center justify-between text-xs text-white">
-                    <span className="truncate max-w-[200px] font-mono text-[11px] text-slate-300">{currentFile?.name}</span>
+                    <span className="truncate max-w-[40vw] sm:max-w-[200px] font-mono text-[11px] text-slate-300">{currentFile?.name}</span>
                     <span className="text-rose-400 font-bold">READY</span>
                   </div>
                 </div>
@@ -154,7 +167,7 @@ export default function ScreeningPage() {
                   const isSelected = selectedSample === sample.id;
                   return (
                     <button key={sample.id} type="button"
-                      onClick={() => setSelectedSample(sample.id)}
+                      onClick={() => handleSelectSample(sample)}
                       className={`p-3.5 rounded-2xl border text-left flex items-center gap-3 transition-all cursor-pointer ${
                         isSelected ? 'border-[#FA495C] bg-rose-50/40 shadow-sm' : 'border-slate-200 hover:border-slate-300 bg-slate-50/50'
                       }`}>
@@ -187,7 +200,7 @@ export default function ScreeningPage() {
               <div className="relative aspect-square w-full rounded-2xl overflow-hidden bg-slate-950 border border-slate-800 flex items-center justify-center">
                 {hasImage ? (
                   <>
-                    <img src={previewUrl} alt="Uploaded image preview" className="w-full h-full object-cover" />
+                    <img src={previewUrl} alt="Uploaded image preview" className="w-full h-full object-contain" />
                     {(isDomainChecking || isAnalyzing) && (
                       <div className="absolute inset-0 pointer-events-none flex items-center justify-center bg-slate-900/30">
                         <div className="w-32 h-32 rounded-full border-2 border-dashed border-rose-500/80 animate-spin" style={{ animationDuration: '3s' }} />
@@ -334,7 +347,7 @@ export default function ScreeningPage() {
 
         {/* ═══ BOTTOM — Progress Steps ═══ */}
         <div className="mt-10 flex items-center justify-center">
-          <div className="flex items-center gap-3 sm:gap-6 bg-white rounded-2xl px-6 py-4 border border-slate-200 shadow-sm">
+          <div className="flex flex-wrap sm:flex-nowrap items-center justify-center gap-4 sm:gap-6 bg-white rounded-2xl px-4 sm:px-6 py-4 border border-slate-200 shadow-sm">
             {PROGRESS_STEPS.map((step, i) => {
               const isActive = step.num === activeStep;
               const isComplete = step.num < activeStep;
@@ -357,7 +370,7 @@ export default function ScreeningPage() {
         </div>
 
         {/* ═══ BOTTOM — Why do we check ═══ */}
-        <div className="mt-6 bg-white rounded-2xl p-5 border border-slate-200 shadow-sm flex items-center justify-between">
+        <div className="mt-6 bg-white rounded-2xl p-5 border border-slate-200 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <Shield className="w-5 h-5 text-[#FA495C]" />
             <div>

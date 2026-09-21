@@ -47,7 +47,7 @@ export default function ScreeningResultSection() {
           <div className="bg-white rounded-3xl shadow-xl border border-slate-100 overflow-hidden">
 
             {/* Card Header */}
-            <div className="bg-[#0A1128] px-8 py-6 flex items-center justify-between">
+            <div className="bg-[#0A1128] px-4 sm:px-8 py-6 flex items-center justify-between">
               <div>
                 <img
                   src="/images/netrx-logo-transparent.png"
@@ -66,7 +66,7 @@ export default function ScreeningResultSection() {
             </div>
 
             {/* DEMO banner */}
-            <div className="bg-amber-50 border-b border-amber-100 px-8 py-2.5 flex items-center gap-2">
+            <div className="bg-amber-50 border-b border-amber-100 px-4 sm:px-8 py-2.5 flex items-center gap-2">
               <AlertCircle className="w-4 h-4 text-amber-500 shrink-0" />
               <span className="text-xs text-amber-700 font-medium">
                 DEMO RESULT — All values shown are sample data for interface demonstration only.
@@ -74,7 +74,7 @@ export default function ScreeningResultSection() {
             </div>
 
             {/* Fields */}
-            <div className="px-8 py-6 space-y-0">
+            <div className="px-4 sm:px-8 py-6 space-y-0">
               {RESULT_FIELDS.map((field, i) => (
                 <div
                   key={field.label}
@@ -93,7 +93,7 @@ export default function ScreeningResultSection() {
             </div>
 
             {/* Safety note */}
-            <div className="px-8 pb-4">
+            <div className="px-4 sm:px-8 pb-4">
               <div className="flex items-start gap-2.5 text-xs text-slate-400 bg-slate-50 rounded-xl px-4 py-3">
                 <ShieldCheck className="w-4 h-4 text-[#FA495C] shrink-0 mt-0.5" />
                 <span className="leading-relaxed">
@@ -104,7 +104,7 @@ export default function ScreeningResultSection() {
             </div>
 
             {/* Action buttons */}
-            <div className="px-8 pb-8 flex flex-col sm:flex-row gap-3">
+            <div className="px-4 sm:px-8 pb-8 flex flex-col sm:flex-row gap-3">
               <button
                 type="button"
                 onClick={() => navigate('/results')}

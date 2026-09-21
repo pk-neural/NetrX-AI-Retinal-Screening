@@ -40,6 +40,6 @@ models/netrx_vit_b16_best/
 # Exclude unzipped vessel model directory
 models/netrx_drive_vessel_best/
 
-# Let the vessel model (7MB) and YOLO (5MB) be committed
-!models/netrx_drive_vessel_best.pth
+# Let YOLO (5MB) be committed
 !models/Yolo.pt/
+models/*.pth

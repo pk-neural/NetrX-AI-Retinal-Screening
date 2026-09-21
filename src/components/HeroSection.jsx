@@ -275,6 +275,8 @@ export default function HeroSection({ onOpenDemo }) {
         >
           {/* Extra depth offset — HUD moves most with mouse (foreground layer) */}
           <div style={{ transform: hudExtraTransform, transition: 'transform 0.22s ease-out' }}>
+            {/* Scale wrapper for responsive HUD sizing */}
+            <div className="scale-[0.55] sm:scale-75 md:scale-90 lg:scale-100 origin-center transition-transform duration-300">
 
             {/* ── Rings ─────────────────────────────────────────────── */}
 
@@ -597,6 +599,7 @@ export default function HeroSection({ onOpenDemo }) {
               />
             ))}
 
+            </div>
           </div>
         </div>
       </div>

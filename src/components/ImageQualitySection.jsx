@@ -52,11 +52,11 @@ export default function ImageQualitySection() {
 
           {/* Left — Eye image */}
           <div className={`relative transition-all duration-700 ${isVisible ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-8'}`}>
-            <div className="relative rounded-3xl overflow-hidden shadow-2xl aspect-[4/3]">
+            <div className="relative rounded-3xl overflow-hidden shadow-2xl aspect-[4/3] bg-black">
               <img
-                src="/images/photo-1627502208346-b835b72c0f05.avif"
+                src="/images/uploaded_fundus_v2.png"
                 alt="Sample retinal fundus image for quality assessment"
-                className="w-full h-full object-cover object-center"
+                className="w-full h-full object-contain object-center p-2"
               />
               {/* Quality grid overlay */}
               <div

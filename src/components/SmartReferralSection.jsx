@@ -81,7 +81,7 @@ export default function SmartReferralSection() {
                   <div className="text-xs text-slate-400 mt-0.5">{step.sub}</div>
                 </div>
                 {!isLast && (
-                  <div className="flex items-center text-slate-200 sm:rotate-0 rotate-90">
+                  <div className="hidden sm:flex items-center text-slate-200 sm:rotate-0 rotate-90">
                     <svg width="32" height="16" viewBox="0 0 32 16" fill="none">
                       <line x1="0" y1="8" x2="24" y2="8" stroke="#E2E8F0" strokeWidth="1.5"/>
                       <path d="M22 3L30 8L22 13" stroke="#FA495C" strokeOpacity="0.5" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>

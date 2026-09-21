@@ -56,7 +56,7 @@ export default function ResultsPage() {
   return (
     <div className="w-full min-h-screen flex flex-col bg-[#F8FAFC]">
       {/* ═══ REPORT CONTAINER ═══ */}
-      <div className="max-w-[900px] mx-auto w-full px-4 sm:px-6 py-8">
+      <div className="max-w-[900px] mx-auto w-full px-4 sm:px-6 py-8 report-container">
 
         {/* ─── Report Header ─── */}
         <div className="bg-[#0A1128] text-white rounded-t-3xl p-8 sm:p-10 relative overflow-hidden">
@@ -108,7 +108,7 @@ export default function ResultsPage() {
                 Input Fundus Image
               </h2>
             </div>
-            <div className="rounded-2xl overflow-hidden border border-slate-200 bg-slate-900 aspect-video md:aspect-[21/9] relative">
+            <div className="rounded-2xl overflow-hidden border border-slate-200 bg-slate-900 relative" style={{ aspectRatio: '16 / 9' }}>
               {originalImage ? (
                 <img src={`data:image/jpeg;base64,${originalImage}`} alt="Original Uploaded Fundus" className="w-full h-full object-contain" />
               ) : (
@@ -118,6 +118,9 @@ export default function ResultsPage() {
           </div>
 
           <hr className="border-slate-100" />
+
+          {/* Page break before DR Assessment for print */}
+          <div className="print-page-break" />
 
           {/* ═══ 1. DIABETIC RETINOPATHY ASSESSMENT ═══ */}
           <div>
@@ -131,7 +134,7 @@ export default function ResultsPage() {
             <div className="flex flex-col md:flex-row gap-6">
               {/* Left: Original Image beside Grade */}
               <div className="w-full md:w-1/3 flex-shrink-0">
-                <div className="h-full rounded-2xl overflow-hidden border-2 border-slate-200 bg-slate-900 aspect-square md:aspect-auto">
+                <div className="rounded-2xl overflow-hidden border-2 border-slate-200 bg-slate-900" style={{ aspectRatio: '1 / 1' }}>
                   {originalImage ? (
                     <img src={`data:image/jpeg;base64,${originalImage}`} alt="Original Fundus" className="w-full h-full object-contain" />
                   ) : (
@@ -225,6 +228,9 @@ export default function ResultsPage() {
 
           <hr className="border-slate-100" />
 
+          {/* Page break before Grad-CAM / DME / Vessels for print */}
+          <div className="print-page-break" />
+
           {/* ═══ 2. GRAD-CAM + DME + VESSELS ═══ */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {/* Grad-CAM */}
@@ -237,10 +243,10 @@ export default function ResultsPage() {
               </div>
               <p className="text-xs text-slate-500 mb-4">Regions contributing to the model's prediction</p>
 
-              <div className="aspect-square rounded-2xl overflow-hidden bg-slate-900 border border-slate-200 relative mb-3">
+              <div className="rounded-2xl overflow-hidden bg-slate-900 border border-slate-200 relative mb-3" style={{ aspectRatio: '1 / 1' }}>
                 {gradcamImage ? (
                   <img src={`data:image/png;base64,${gradcamImage}`} alt="Grad-CAM heatmap"
-                    className="w-full h-full object-cover" />
+                    className="w-full h-full object-contain" />
                 ) : (
                   <div className="w-full h-full flex flex-col items-center justify-center text-slate-500 text-sm p-6 text-center">
                     <AlertTriangle className="w-8 h-8 mb-2 opacity-50" />
@@ -337,6 +343,9 @@ export default function ResultsPage() {
 
           <hr className="border-slate-100" />
 
+          {/* Page break before Clinical Impression for print */}
+          <div className="print-page-break" />
+
           {/* ═══ 3. CLINICAL IMPRESSION ═══ */}
           <div>
             <div className="flex items-center gap-2 mb-4">
@@ -394,22 +403,22 @@ export default function ResultsPage() {
           </div>
         </div>
 
-        {/* ─── Report Footer Actions ─── */}
-        <div className="bg-white border border-t-0 border-slate-200 rounded-b-3xl p-6 sm:p-8">
+        {/* ─── Report Footer Actions (hidden in PDF) ─── */}
+        <div className="bg-white border border-t-0 border-slate-200 rounded-b-3xl p-6 sm:p-8 no-print">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-3 flex-wrap">
               <button onClick={() => window.print()}
                 title="Opens your browser's Print dialog — select 'Save as PDF' to download"
-                className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white bg-[#0A1128] rounded-xl hover:bg-slate-800 transition-colors cursor-pointer">
+                className="flex items-center gap-2 px-5 py-3 text-sm font-bold text-white bg-[#0A1128] rounded-xl hover:bg-slate-800 transition-colors cursor-pointer">
                 <Download className="w-4 h-4" /> Download Report (PDF)
               </button>
               <button disabled
                 title="Share functionality is not yet implemented"
-                className="flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-slate-400 bg-slate-50 border border-slate-200 rounded-xl cursor-not-allowed opacity-60">
+                className="flex items-center gap-2 px-5 py-3 text-sm font-semibold text-slate-400 bg-slate-50 border border-slate-200 rounded-xl cursor-not-allowed opacity-60">
                 <Share2 className="w-4 h-4" /> Share Report
               </button>
               <button onClick={() => { resetScreening(); navigate('/screening'); }}
-                className="flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors cursor-pointer">
+                className="flex items-center gap-2 px-5 py-3 text-sm font-semibold text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors cursor-pointer">
                 <RefreshCw className="w-4 h-4" /> New Analysis
               </button>
             </div>
@@ -420,8 +429,19 @@ export default function ResultsPage() {
           </div>
         </div>
 
-        {/* ─── Very Bottom Footer ─── */}
-        <div className="flex items-center justify-between text-xs text-slate-400 mt-4 px-2">
+        {/* ─── Print-only Report Footer ─── */}
+        <div className="print-only bg-white border border-t-0 border-slate-200 rounded-b-3xl p-6">
+          <div className="flex items-center justify-between text-xs text-slate-400 border-t border-slate-100 pt-4">
+            <span><strong className="text-[#0A1128]">NetrX</strong> — AI-Assisted Retinal Screening Report</span>
+            <span>Report #{report_id || 'N/A'} · {date || 'N/A'}</span>
+          </div>
+          <div className="mt-3 text-[10px] text-slate-400 text-center">
+            This report was generated by NetrX AI. Results are intended to support, not replace, clinical judgment.
+          </div>
+        </div>
+
+        {/* ─── Very Bottom Footer (hidden in PDF) ─── */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-400 mt-4 px-2 text-center sm:text-left no-print">
           <span><strong className="text-[#0A1128]">NetrX</strong> © 2026 NetrX. All rights reserved.</span>
           <div className="flex gap-4">
             <span>Privacy</span>

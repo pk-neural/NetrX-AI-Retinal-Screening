@@ -187,7 +187,7 @@ export default function QualityPage() {
                   </div>
                   <div className="aspect-square rounded-2xl overflow-hidden bg-slate-900 border border-slate-200">
                     {originalImage ? (
-                      <img src={`data:image/jpeg;base64,${originalImage}`} alt="Original" className="w-full h-full object-cover" />
+                      <img src={`data:image/jpeg;base64,${originalImage}`} alt="Original" className="w-full h-full object-contain" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-slate-500 text-xs">No image</div>
                     )}
@@ -199,7 +199,7 @@ export default function QualityPage() {
                   </div>
                   <div className="aspect-square rounded-2xl overflow-hidden bg-slate-900 border border-slate-200">
                     {enhancedImage ? (
-                      <img src={`data:image/jpeg;base64,${enhancedImage}`} alt="Enhanced" className="w-full h-full object-cover" />
+                      <img src={`data:image/jpeg;base64,${enhancedImage}`} alt="Enhanced" className="w-full h-full object-contain" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-slate-500 text-xs">No image</div>
                     )}

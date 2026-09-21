@@ -91,7 +91,7 @@ export default function SolutionPage() {
           </div>
 
           {/* Step Buttons */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
             {WORKFLOW_STEPS.map((step, idx) => {
               const Icon = step.icon;
               const isActive = activeStep === idx;

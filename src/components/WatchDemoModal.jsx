@@ -80,7 +80,7 @@ export default function WatchDemoModal({ isOpen, onClose }) {
           })}
 
           {/* Stat row */}
-          <div className="grid grid-cols-3 gap-4 bg-[#0A1128] text-white rounded-2xl p-5 mt-2">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-[#0A1128] text-white rounded-2xl p-5 mt-2">
             {[
               { val: '< 3s', sub: 'Inference Speed' },
               { val: '98.4%', sub: 'DR Sensitivity' },

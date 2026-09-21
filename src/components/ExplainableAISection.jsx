@@ -43,13 +43,13 @@ export default function ExplainableAISection() {
           <div className="space-y-4">
 
             {/* Toggle control */}
-            <div className="flex items-center bg-slate-100 p-1 rounded-xl w-fit">
+            <div className="flex flex-col sm:flex-row items-center bg-slate-100 p-1 rounded-xl w-full sm:w-fit">
               {['original', 'heatmap'].map((mode) => (
                 <button
                   key={mode}
                   type="button"
                   onClick={() => setViewMode(mode)}
-                  className={`px-5 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 cursor-pointer ${
+                  className={`w-full sm:w-auto px-5 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 cursor-pointer ${
                     viewMode === mode
                       ? 'bg-white shadow-sm text-[#0A1128]'
                       : 'text-slate-500 hover:text-[#0A1128]'
@@ -63,10 +63,10 @@ export default function ExplainableAISection() {
             {/* Image container */}
             <div className="relative rounded-3xl overflow-hidden aspect-[4/3] shadow-xl border border-slate-100">
               <img
-                src="/images/photo-1627502208346-b835b72c0f05.avif"
+                src={viewMode === 'heatmap' ? '/images/uploaded_gradcam_v2.jpg' : '/images/uploaded_fundus_v2.png'}
                 alt="Retinal fundus image with AI attention regions"
-                className="w-full h-full object-cover object-center"
-                style={{ filter: viewMode === 'heatmap' ? 'brightness(0.7) saturate(0.8)' : 'brightness(0.85)' }}
+                className="w-full h-full object-contain object-center bg-black p-2"
+                style={{ filter: viewMode === 'heatmap' ? 'brightness(1)' : 'brightness(0.85)' }}
               />
 
               {/* Heatmap overlay */}
@@ -86,23 +86,6 @@ export default function ExplainableAISection() {
                 />
               )}
 
-              {/* Region labels in heatmap mode */}
-              {viewMode === 'heatmap' && (
-                <>
-                  <div className="absolute top-[44%] left-[47%] animate-fade-up pointer-events-none">
-                    <div className="bg-red-500/90 text-white text-[9px] font-extrabold uppercase tracking-wide px-2 py-1 rounded-md whitespace-nowrap shadow-lg">
-                      High Attention Region
-                    </div>
-                    <div className="w-px h-4 bg-red-400/60 mx-auto" />
-                  </div>
-                  <div className="absolute top-[32%] right-[30%] animate-fade-up pointer-events-none" style={{ animationDelay: '0.1s' }}>
-                    <div className="bg-orange-400/90 text-white text-[9px] font-bold uppercase tracking-wide px-2 py-1 rounded-md whitespace-nowrap shadow-md">
-                      Model Attention
-                    </div>
-                  </div>
-                </>
-              )}
-
               {/* Mode badge */}
               <div className="absolute bottom-4 left-4 pointer-events-none">
                 <div className={`text-[10px] font-extrabold uppercase tracking-widest px-3 py-1.5 rounded-lg border ${
@@ -113,23 +96,6 @@ export default function ExplainableAISection() {
                   {viewMode === 'heatmap' ? 'Explainability View — SAMPLE' : 'Original Image'}
                 </div>
               </div>
-
-              {/* Heatmap legend */}
-              {viewMode === 'heatmap' && (
-                <div className="absolute top-4 right-4 bg-[#0A1128]/80 backdrop-blur-sm rounded-xl p-3 pointer-events-none animate-fade-up">
-                  <div className="text-[9px] text-slate-400 font-semibold mb-2 uppercase tracking-wider">Attention</div>
-                  <div
-                    className="w-24 h-2.5 rounded-full"
-                    style={{
-                      background: 'linear-gradient(to right, transparent, rgba(255,200,0,0.8), rgba(255,140,0,0.9), rgba(255,30,30,1))',
-                    }}
-                  />
-                  <div className="flex justify-between text-[8px] text-slate-400 mt-1">
-                    <span>Low</span>
-                    <span>High</span>
-                  </div>
-                </div>
-              )}
             </div>
           </div>
 

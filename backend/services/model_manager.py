@@ -17,14 +17,20 @@ import torch
 import torch.nn as nn
 from torchvision import models
 
+from backend.services.hf_downloader import ensure_model, HFDownloadError
+
 logger = logging.getLogger("netrx.models")
 
 # ── Model paths (relative to project root) ────────────────────
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 MODELS_DIR = os.path.join(PROJECT_ROOT, "models")
 
-DR_MODEL_PATH = os.path.join(MODELS_DIR, "netrx_vit_b16_best.pth")
-DME_MODEL_PATH = os.path.join(MODELS_DIR, "netrx_idrid_dme_vit_b16_best.pth")
+# Model filenames — configurable via environment variables
+DR_MODEL_FILE = os.environ.get("NETRX_DR_MODEL_FILE", "netrx_vit_b16_best.pth")
+DME_MODEL_FILE = os.environ.get("NETRX_DME_MODEL_FILE", "netrx_idrid_dme_vit_b16_best.pth")
+
+DR_MODEL_PATH = os.path.join(MODELS_DIR, DR_MODEL_FILE)
+DME_MODEL_PATH = os.path.join(MODELS_DIR, DME_MODEL_FILE)
 VESSEL_MODEL_PATH = os.path.join(MODELS_DIR, "netrx_drive_vessel_best.pth")
 YOLO_MODEL_DIR = os.path.join(MODELS_DIR, "Yolo.pt")
 
@@ -168,16 +174,24 @@ class ModelManager:
     def _load_dr_model(self):
         """Load the DR ViT-B/16 model (5 classes)."""
         try:
-            if not os.path.isfile(DR_MODEL_PATH):
-                logger.error(f"DR model not found: {DR_MODEL_PATH}")
+            # Ensure model is available (download from HF if needed)
+            try:
+                dr_path = ensure_model(DR_MODEL_FILE)
+            except HFDownloadError as e:
+                logger.error(f"DR model unavailable: {e}")
                 self._load_status["dr"] = "missing"
                 return
 
-            logger.info(f"Loading DR model from: {DR_MODEL_PATH}")
+            if not os.path.isfile(dr_path):
+                logger.error(f"DR model not found: {dr_path}")
+                self._load_status["dr"] = "missing"
+                return
+
+            logger.info(f"Loading DR model from: {dr_path}")
 
             # Build architecture and load state_dict
             model = _build_vit_model(num_classes=5)
-            state_dict = torch.load(DR_MODEL_PATH, map_location=self.device, weights_only=False)
+            state_dict = torch.load(dr_path, map_location=self.device, weights_only=False)
             model.load_state_dict(state_dict)
             model.eval()
             model.to(self.device)
@@ -195,16 +209,24 @@ class ModelManager:
     def _load_dme_model(self):
         """Load the DME ViT-B/16 model (3 classes)."""
         try:
-            if not os.path.isfile(DME_MODEL_PATH):
-                logger.error(f"DME model not found: {DME_MODEL_PATH}")
+            # Ensure model is available (download from HF if needed)
+            try:
+                dme_path = ensure_model(DME_MODEL_FILE)
+            except HFDownloadError as e:
+                logger.error(f"DME model unavailable: {e}")
                 self._load_status["dme"] = "missing"
                 return
 
-            logger.info(f"Loading DME model from: {DME_MODEL_PATH}")
+            if not os.path.isfile(dme_path):
+                logger.error(f"DME model not found: {dme_path}")
+                self._load_status["dme"] = "missing"
+                return
+
+            logger.info(f"Loading DME model from: {dme_path}")
 
             # Build architecture and load state_dict
             model = _build_vit_model(num_classes=3)
-            state_dict = torch.load(DME_MODEL_PATH, map_location=self.device, weights_only=False)
+            state_dict = torch.load(dme_path, map_location=self.device, weights_only=False)
             model.load_state_dict(state_dict)
             model.eval()
             model.to(self.device)
