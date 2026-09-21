@@ -4,8 +4,8 @@
  * Handles all communication with the FastAPI backend.
  */
 
-// If using vite proxy, this can just be '/api'
-const BASE_URL = '/api';
+// Use Vite env variable for production, fallback to '/api' for local proxy
+const BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 /**
  * Check backend health status

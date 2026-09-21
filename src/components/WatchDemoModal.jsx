@@ -43,55 +43,31 @@ export default function WatchDemoModal({ isOpen, onClose }) {
           </div>
           <button
             type="button"
-            onClick={onClose}
-            className="w-9 h-9 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-400 hover:text-[#FA495C] cursor-pointer"
+            onClick={(e) => {
+              console.log("X BUTTON CLICKED");
+              e.preventDefault();
+              e.stopPropagation();
+              onClose();
+            }}
+            className="w-9 h-9 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-400 hover:text-[#FA495C] cursor-pointer z-10 relative"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Body */}
-        <div className="overflow-y-auto p-6 space-y-4 flex-1">
-          <p className="text-sm text-slate-600 leading-relaxed">
-            NetrX follows a structured 5-step clinical AI pipeline — from fundus image ingestion to referral report generation.
-          </p>
-
-          {WORKFLOW_STEPS.map((s, i) => {
-            const Icon = s.icon;
-            return (
-              <div key={s.step} className="flex gap-4 items-start">
-                <div className="flex flex-col items-center gap-1">
-                  <div className="w-9 h-9 rounded-full bg-[#0A1128] text-white flex items-center justify-center flex-shrink-0">
-                    <Icon className="w-4 h-4" />
-                  </div>
-                  {i < WORKFLOW_STEPS.length - 1 && (
-                    <div className="w-px flex-1 h-8 bg-slate-200" />
-                  )}
-                </div>
-                <div className="pb-4">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-extrabold text-[#FA495C] uppercase tracking-wider">Step {s.step}</span>
-                  </div>
-                  <h4 className="text-sm font-bold text-[#0A1128] mt-0.5">{s.title}</h4>
-                  <p className="text-xs text-slate-500 mt-1 leading-relaxed">{s.desc}</p>
-                </div>
-              </div>
-            );
-          })}
-
-          {/* Stat row */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-[#0A1128] text-white rounded-2xl p-5 mt-2">
-            {[
-              { val: '< 3s', sub: 'Inference Speed' },
-              { val: '98.4%', sub: 'DR Sensitivity' },
-              { val: '5 Grades', sub: 'ETDRS Staging' },
-            ].map((stat) => (
-              <div key={stat.sub} className="text-center">
-                <div className="text-xl font-extrabold text-[#FA495C]">{stat.val}</div>
-                <div className="text-xs text-slate-400 mt-0.5">{stat.sub}</div>
-              </div>
-            ))}
-          </div>
+        {/* Body - Video Player */}
+        <div className="w-full bg-black relative flex-1 flex flex-col items-center justify-center min-h-[300px]">
+          <video 
+            src="/videos/netrx-demo.mp4"
+            className="w-full max-h-[60vh] object-contain outline-none"
+            controls
+            controlsList="nodownload"
+            playsInline
+            preload="metadata"
+            poster="/images/hero-fundus.png"
+          >
+            Your browser does not support the video tag.
+          </video>
         </div>
 
         {/* Footer */}
