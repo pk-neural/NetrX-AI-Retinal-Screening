@@ -48,9 +48,10 @@ from backend.services.rag_service import generate_interpretation
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Load models on startup, cleanup on shutdown."""
-    logger.info("NetrX Backend starting — loading models...")
-    model_manager.load_all()
-    logger.info("Model loading complete. Backend ready.")
+    logger.info("NetrX Backend starting — launching background model loader...")
+    import threading
+    threading.Thread(target=model_manager.load_all, daemon=True).start()
+    logger.info("Background model loader started. Backend ready to accept connections.")
     yield
     logger.info("NetrX Backend shutting down.")
 
@@ -88,8 +89,15 @@ app.add_middleware(
 @app.get("/api/health")
 async def health():
     """Return backend and model loading status."""
+    if model_manager.is_ready:
+        status_msg = "ok"
+    elif model_manager.is_loading:
+        status_msg = "loading"
+    else:
+        status_msg = "error"
+        
     return {
-        "status": "ok",
+        "status": status_msg,
         "models": model_manager.get_status(),
         "timestamp": datetime.now(timezone(timedelta(hours=5, minutes=30))).isoformat(),
     }
@@ -102,6 +110,9 @@ async def domain_check(file: UploadFile = File(...)):
     Run YOLO input-domain validation only.
     Quick check before full analysis pipeline.
     """
+    if model_manager.is_loading:
+        raise HTTPException(status_code=503, detail="Models are still initializing. Please try again in a few minutes.")
+
     try:
         image_bytes = await file.read()
         if not image_bytes:
@@ -144,6 +155,11 @@ async def analyze(file: UploadFile = File(...)):
     Run the complete NetrX analysis pipeline:
     YOLO → Preprocessing → Quality → DR/DME/Vessel → GradCAM → RAG → Report
     """
+    if model_manager.is_loading:
+        raise HTTPException(status_code=503, detail="Models are still initializing. Please try again in a few minutes.")
+    if not model_manager.is_ready:
+        raise HTTPException(status_code=503, detail="Required models failed to load. The screening service is unavailable.")
+
     start_time = time.time()
 
     try:

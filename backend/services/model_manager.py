@@ -148,6 +148,9 @@ class ModelManager:
             return
         self._initialized = True
 
+        import threading
+        self._lock = threading.Lock()
+
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         logger.info(f"Model device: {self.device}")
 
@@ -165,6 +168,13 @@ class ModelManager:
 
     def load_all(self):
         """Load all models. Call this during application startup."""
+        with self._lock:
+            if self._load_status["dr"] != "not_loaded":
+                return # Already loaded or loading
+                
+            for key in self._load_status:
+                self._load_status[key] = "loading"
+
         self._load_dr_model()
         self._load_dme_model()
         self._load_vessel_model()
@@ -333,6 +343,11 @@ class ModelManager:
             self._load_status["dr"] == "loaded"
             and self._load_status["dme"] == "loaded"
         )
+
+    @property
+    def is_loading(self) -> bool:
+        """Check if models are currently loading."""
+        return any(s == "loading" for s in self._load_status.values())
 
 
 # Global instance
